@@ -19,6 +19,12 @@ override_dh_installsystemd:
 override_dh_installinit:
 	dh_installinit --name pvefw-logger
 	dh_installinit --name pve-firewall --no-stop-on-upgrade --no-restart-after-upgrade
+
+override_dh_lintian:
+	dh_lintian
+	install -d debian/pve-firewall/usr/share/lintian/overrides
+	cat debian/pve-firewall.lintian-overrides.lsbservice \
+	    >>debian/pve-firewall/usr/share/lintian/overrides/pve-firewall
 else
 override_dh_installsystemd:
 	dh_installsystemd --name pvefw-logger pvefw-logger.service

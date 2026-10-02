@@ -6,14 +6,23 @@ set -e
 
 case "$1" in
     configure)
-	# modeled after dh_systemd_start output
-	systemctl --system daemon-reload >/dev/null || true
-	if [ -n "$2" ]; then
-		_dh_action=try-reload-or-restart
-	else
-		_dh_action=start
+	if [ -d /run/systemd/system ]; then
+		# modeled after dh_systemd_start output
+		systemctl --system daemon-reload >/dev/null || true
+		if [ -n "$2" ]; then
+			_dh_action=try-reload-or-restart
+		else
+			_dh_action=start
+		fi
+		deb-systemd-invoke $_dh_action pve-firewall.service >/dev/null || true
+	elif [ -x /etc/init.d/pve-firewall ] && [ -n "$2" ]; then
+		# the pkg.pve-firewall.lsbservice variant's init script, e.g. on Devuan:
+		# reload (a graceful restart) on upgrades if running, like above;
+		# dh_installinit's snippet starts it on installation
+		if invoke-rc.d --quiet pve-firewall status >/dev/null 2>&1; then
+			invoke-rc.d pve-firewall reload >/dev/null || true
+		fi
 	fi
-	deb-systemd-invoke $_dh_action pve-firewall.service >/dev/null || true
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

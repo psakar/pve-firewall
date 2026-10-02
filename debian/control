@@ -18,6 +18,7 @@ Standards-Version: 4.6.2
 Package: pve-firewall
 Architecture: any
 Conflicts: ulogd,
+Pre-Depends: ${misc:Pre-Depends}
 Depends: conntrack,
          ebtables,
          ipset,

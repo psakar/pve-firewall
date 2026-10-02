@@ -3,11 +3,26 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+# The pkg.pve-firewall.lsbservice build profile is for Devuan and other
+# systemd-free Debian derivatives (see pve-common's and pve-manager's
+# pkg.*.lsbservice profiles): it installs LSB init scripts instead of the
+# systemd units, with the same restart behavior on upgrades. To build this
+# variant, run:
+#   dpkg-buildpackage -b -us -uc -Ppkg.pve-firewall.lsbservice
+
 %:
 	dh $@
 
+ifneq (,$(filter pkg.pve-firewall.lsbservice,$(DEB_BUILD_PROFILES)))
+override_dh_installsystemd:
+
+override_dh_installinit:
+	dh_installinit --name pvefw-logger
+	dh_installinit --name pve-firewall --no-stop-on-upgrade --no-restart-after-upgrade
+else
 override_dh_installsystemd:
 	dh_installsystemd --name pvefw-logger pvefw-logger.service
 	dh_installsystemd --name pve-firewall --no-stop-on-upgrade --no-restart-after-upgrade pve-firewall.service
 
 override_dh_installinit:
+endif

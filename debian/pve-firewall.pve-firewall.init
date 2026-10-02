@@ -1,0 +1,64 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          pve-firewall
+# Required-Start:    $remote_fs $network $syslog pve-cluster pvefw-logger
+# Required-Stop:     $remote_fs $network $syslog pve-cluster pvefw-logger
+# Should-Start:      kmod
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Proxmox VE firewall
+### END INIT INFO
+
+# LSB counterpart of pve-firewall.service, only installed by the
+# pkg.pve-firewall.lsbservice build (see debian/rules). The daemon forks and
+# manages its pid file itself, so this only wraps its start/stop/restart
+# commands; kmod replaces the unit's ordering after systemd-modules-load.
+
+. /lib/lsb/init-functions
+
+NAME=pve-firewall
+DESC="Proxmox VE firewall"
+DAEMON=/usr/sbin/pve-firewall
+PIDFILE=/run/pve-firewall.pid
+
+# tell the daemon it's run by the init system, so that it acts directly
+# instead of asking the init system, i.e. running this script again
+export PVE_INIT_SCRIPT=1
+
+test -x $DAEMON || exit 0
+
+[ -r /etc/default/pve-firewall ] && . /etc/default/pve-firewall
+
+case "$1" in
+    start)
+        if [ "$START_FIREWALL" = "no" ]; then
+            log_action_msg "Not starting $DESC (disabled in /etc/default/pve-firewall)"
+            exit 0
+        fi
+        # like the unit's ExecStartPre=, the firewall uses the legacy tools
+        update-alternatives --set ebtables /usr/sbin/ebtables-legacy >/dev/null 2>&1 || true
+        update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1 || true
+        update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy >/dev/null 2>&1 || true
+        log_daemon_msg "Starting $DESC" "$NAME"
+        $DAEMON start
+        log_end_msg $?
+        ;;
+    stop)
+        log_daemon_msg "Stopping $DESC" "$NAME"
+        $DAEMON stop
+        log_end_msg $?
+        ;;
+    restart|reload|force-reload)
+        # like ExecReload= in the unit, a graceful re-exec of the daemon
+        log_daemon_msg "Restarting $DESC" "$NAME"
+        $DAEMON restart
+        log_end_msg $?
+        ;;
+    status)
+        status_of_proc -p $PIDFILE $DAEMON $NAME
+        ;;
+    *)
+        echo "Usage: /etc/init.d/$NAME {start|stop|restart|reload|force-reload|status}" >&2
+        exit 3
+        ;;
+esac

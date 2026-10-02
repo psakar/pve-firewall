@@ -18,6 +18,7 @@ use PVE::Cluster;
 use PVE::Corosync;
 use PVE::Exception qw(raise raise_param_exc);
 use PVE::INotify;
+use PVE::InitSystem;
 use PVE::JSONSchema qw(register_standard_option get_standard_option);
 use PVE::Network;
 use PVE::ProcFSTools;
@@ -5462,7 +5463,7 @@ sub update_nf_conntrack_logging {
         my $tmpfile = "$pve_fw_status_dir/log_nf_conntrack";
         PVE::Tools::file_set_contents($tmpfile, $value);
 
-        run_command([qw(systemctl try-reload-or-restart pvefw-logger.service)]);
+        PVE::InitSystem::try_reload_or_restart_service('pvefw-logger');
         $log_nf_conntrack_enabled = $value;
     }
 }
